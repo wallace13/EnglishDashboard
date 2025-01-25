@@ -65,6 +65,14 @@ Clique no botão **Clear All** para excluir todas as palavras/frases da lista.
 - Para aproveitar ao máximo, mantenha o dashboard aberto enquanto estuda.
 - Use a função de leitura para melhorar sua pronúncia.
 - Exporte seu vocabulário periodicamente para manter um backup.
+---
+
+## Observação importante
+As palavras adicionadas são armazenadas no localStorage do navegador. Isso significa que:
+- Se você limpar o histórico do navegador, as palavras salvas serão perdidas.
+- Se você usar outro navegador ou dispositivo, as palavras não estarão disponíveis.
+
+**Recomendação:** Caso seja importante preservar as palavras, certifique-se de copiá-las antes de limpar o histórico ou de mudar de navegador.
 
 ---
 
