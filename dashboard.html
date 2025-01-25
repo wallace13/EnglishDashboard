@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Study Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /*justify-content: center;*/
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+			padding: 15px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 300px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .words-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .word {
+            /*background-color: #fff;*/
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            text-transform: capitalize;
+            border-radius: 5px;
+            font-size: 18px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .word button {
+            font-size: 14px;
+            padding: 5px 10px;
+            background-color: #dc3545;
+        }
+
+        .word button:hover {
+            background-color: #c82333;
+        }		
+    </style>
+</head>
+<body>
+    <h1>English Study Dashboard</h1>
+    <div class="input-container">
+        <input type="text" id="wordInput" placeholder="Enter a word in English">
+        <button onclick="addWord()">Add Word</button>
+        <button onclick="exportWords()">Export Words</button>
+        <button onclick="document.getElementById('fileInput').click()">Import Words</button>
+        <button onclick="clearAllWords()">Clear All</button>
+        <input type="file" id="fileInput" accept=".txt" style="display: none;" onchange="importWords(event)">
+    </div>
+    <div class="words-container" id="wordsContainer"></div>
+	<div id="tooltip"></div>
+
+    <script>
+        // Load words from localStorage on page load
+        document.addEventListener("DOMContentLoaded", function() {
+            loadWords();
+        });
+
+        function loadWords() {
+            const words = JSON.parse(localStorage.getItem("words")) || [];
+            const container = document.getElementById("wordsContainer");
+            container.innerHTML = ""; // Clear container
+
+            words.forEach((word, index) => {
+                const wordElement = document.createElement("div");
+                wordElement.className = "word";
+
+                const wordText = document.createElement("span");
+                wordText.textContent = word;
+
+                const merriamWebsterApiKey = "YOUR_MERRIAM_WEBSTER_API_KEY";
+
+                // Função para buscar a definição
+                const fetchDefinition = async (word) => {
+                    try {
+						const isPhrase = word.trim().includes(" ");
+						
+						if (isPhrase) {
+							// Fazer a tradução da frase para português
+							const translateResponse = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|pt`);
+							if (!translateResponse.ok) {
+								console.error(`Erro na requisição para tradução: ${translateResponse.status}`);
+								return "Translation not found."; // Mensagem padrão em caso de erro
+							}
+
+							const translateData = await translateResponse.json();
+							if (translateData && translateData.responseData) {
+								return `<strong>Tradução:</strong> ${translateData.responseData.translatedText}`;
+							} else {
+								return "Translation not found.";
+							}
+						} else {
+						
+							const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+
+							if (!response.ok) {
+								// Tratar erros de requisição
+								console.error(`Erro na requisição para ${word}: ${response.status}`);
+								return "Definition not found."; // Mensagem padrão em caso de erro
+							}
+
+							const data = await response.json();
+
+							if (data && data.length > 0) {
+								// Se houver definições, exibe o significado
+								const definitions = data[0].meanings;
+								if (definitions && definitions.length > 0) {
+									return definitions.map(meaning => {
+										const partOfSpeech = meaning.partOfSpeech;
+										const definition = meaning.definitions.map(def => def.definition).join("<br>");
+										return `<strong>${partOfSpeech}</strong>: <br>${definition}`;
+									}).join("<br><br>"); // Adiciona espaçamento entre os tópicos
+								} else {
+									return "Definition not found.";
+								}
+							} else {
+								return "Definition not found.";
+							}
+						}
+                    } catch (error) {
+                        console.error("Erro ao buscar definição:", error);
+                        return "Error fetching definition.";
+                    }
+					
+                };
+
+                // Tooltip customizado
+				const tooltip = document.createElement("div");
+				tooltip.style.position = "absolute";
+				tooltip.style.backgroundColor = "#333";
+				tooltip.style.color = "#fff";
+				tooltip.style.padding = "8px 12px";
+				tooltip.style.borderRadius = "5px";
+				tooltip.style.fontSize = "12px";
+				tooltip.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+				tooltip.style.whiteSpace = "pre-wrap"; // Permite quebras de linha no texto
+				tooltip.style.zIndex = "1000"; // Garantir que esteja acima de outros elementos
+				tooltip.style.display = "none"; // Inicialmente escondido
+
+				// Adiciona o tooltip ao corpo do documento
+				document.body.appendChild(tooltip);
+
+				// Variável para garantir que apenas um tooltip seja exibido
+				let activeTooltip = null;
+				
+				// Muda o cursor para mãozinha quando o mouse estiver sobre a palavra
+				wordText.style.cursor = "pointer";
+				// Impede a seleção de texto
+				wordText.style.userSelect = "none";
+
+				// Lógica de exibição do tooltip
+				wordText.addEventListener("dblclick", async () => {
+					// Oculta o tooltip ativo, se houver
+					if (activeTooltip) {
+						activeTooltip.style.display = "none";
+					}
+
+					// Busca a definição ou tradução
+					const definition = await fetchDefinition(wordText.textContent);
+					tooltip.innerHTML = definition; // Adiciona a definição formatada no tooltip
+					tooltip.style.display = "block"; // Exibe o tooltip
+
+					// Calcula a posição do tooltip
+					const rect = wordText.getBoundingClientRect();
+					tooltip.style.left = `${rect.left + window.scrollX}px`;
+					tooltip.style.top = `${rect.bottom + window.scrollY}px`;
+
+					// Define o tooltip atual como ativo
+					activeTooltip = tooltip;
+				});
+
+				// Oculta o tooltip quando o mouse sai do elemento
+				wordText.addEventListener("mouseleave", () => {
+					tooltip.style.display = "none"; // Oculta o tooltip
+					activeTooltip = null; // Limpa a referência do tooltip ativo
+				});
+
+
+                // Criando o menu de contexto
+                const contextMenu = document.createElement("div");
+                contextMenu.className = "context-menu";
+                contextMenu.style.display = "none"; // Inicialmente invisível
+
+                const editOption = document.createElement("button");
+                editOption.textContent = "Edit";
+                editOption.style.backgroundColor = "#ffc107";
+                editOption.style.color = "#fff";
+                editOption.onclick = function() {
+                    const newWord = prompt("Edit the word:", word);
+                    if (newWord) {
+                        editWord(index, newWord);
+                    }
+                    contextMenu.style.display = "none"; // Esconde o menu após a ação
+                };
+
+                const deleteOption = document.createElement("button");
+                deleteOption.textContent = "Delete";
+                deleteOption.onclick = function() {
+                    deleteWord(index);
+                    contextMenu.style.display = "none"; // Esconde o menu após a ação
+                };
+				
+				const copyOption = document.createElement("button");
+				copyOption.textContent = "Copy";
+				copyOption.style.backgroundColor = "#28a745";
+				copyOption.style.color = "#fff";
+				copyOption.onclick = function() {
+					// Copia o texto para a área de transferência
+					navigator.clipboard.writeText(word).then(() => {
+						alert("Word copied to clipboard!");
+					}).catch(err => {
+						console.error("Failed to copy text: ", err);
+					});
+					contextMenu.style.display = "none"; // Esconde o menu após a ação
+				};
+				
+				// Opção de ler o texto
+				const readOption = document.createElement("button");
+				readOption.textContent = "Read";
+				readOption.style.backgroundColor = "#007bff";
+				readOption.style.color = "#fff";
+				readOption.onclick = function() {
+					// Usando a SpeechSynthesis API para ler o texto em inglês
+					const utterance = new SpeechSynthesisUtterance(word);
+					utterance.lang = "en-US"; // Define o idioma para inglês
+					window.speechSynthesis.speak(utterance); // Fala o texto
+
+					contextMenu.style.display = "none"; // Esconde o menu após a ação
+				};
+
+				contextMenu.appendChild(readOption);
+				contextMenu.appendChild(copyOption);
+                contextMenu.appendChild(editOption);
+                contextMenu.appendChild(deleteOption);
+                wordElement.appendChild(wordText);
+                wordElement.appendChild(contextMenu);
+
+                // Evento de clique com o botão direito (contextmenu)
+                wordText.addEventListener("contextmenu", function(event) {
+                    event.preventDefault(); // Previne o menu de contexto padrão
+
+                    // Exibe o menu de contexto na posição do clique
+                    contextMenu.style.left = `${event.pageX + 10}px`;
+                    contextMenu.style.top = `${event.pageY + 10}px`;
+                    contextMenu.style.display = "block";
+                });
+
+                // Esconde o menu se clicar fora dele
+                window.addEventListener("click", function() {
+                    contextMenu.style.display = "none";
+                });
+
+                container.appendChild(wordElement);
+            });
+        }
+
+
+        function addWord() {
+            const input = document.getElementById("wordInput");
+            const newWord = input.value.trim();
+
+            if (newWord === "") {
+                alert("Please enter a word!");
+                return;
+            }
+
+            const words = JSON.parse(localStorage.getItem("words")) || [];
+            words.push(newWord);
+            localStorage.setItem("words", JSON.stringify(words));
+
+            input.value = ""; // Clear input
+            loadWords(); // Refresh the words display
+        }
+
+        function editWord(index, newWord) {
+            const words = JSON.parse(localStorage.getItem("words")) || [];
+            words[index] = newWord;
+            localStorage.setItem("words", JSON.stringify(words));
+            loadWords();
+        }
+
+        function deleteWord(index) {
+            const words = JSON.parse(localStorage.getItem("words")) || [];
+            words.splice(index, 1);
+            localStorage.setItem("words", JSON.stringify(words));
+            loadWords();
+        }
+
+        function clearAllWords() {
+            if (confirm("Are you sure you want to clear all words?")) {
+                localStorage.removeItem("words");
+                loadWords();
+            }
+        }
+
+        function exportWords() {
+            const words = JSON.parse(localStorage.getItem("words")) || [];
+            const blob = new Blob([words.join("\n")], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "words.txt";
+            link.click();
+        }
+
+        function importWords(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const words = content.split("\n").map(word => word.trim()).filter(word => word);
+
+                const existingWords = JSON.parse(localStorage.getItem("words")) || [];
+                const allWords = [...new Set([...existingWords, ...words])]; // Remove duplicates
+                localStorage.setItem("words", JSON.stringify(allWords));
+                loadWords();
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
