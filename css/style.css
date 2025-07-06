@@ -12,6 +12,7 @@ body, html {
     /* Mantém fixo enquanto rola */
     background-size: cover;
     /* Estica até cobrir tudo */
+    width: 100%;
 }
 
 .menu {
