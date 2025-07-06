@@ -34,39 +34,39 @@ const fetchTranslation = async (originalWord) => {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-    const importBtn = document.getElementById("importBtn");
-    const fileInput = document.getElementById("fileInput");
+  const importBtn = document.getElementById("importBtn");
+  const fileInput = document.getElementById("fileInput");
 
-    importBtn.addEventListener("click", () => {
-      fileInput.value = "";
-      fileInput.click();
-    });
-
-    fileInput.addEventListener("change", (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target.result;
-        const newWords = content.split("\n").map(w => w.trim()).filter(w => w);
-
-        const existingWords = JSON.parse(localStorage.getItem("words")) || [];
-        const allWords = [...new Set([...existingWords, ...newWords])];
-
-        localStorage.setItem("words", JSON.stringify(allWords));
-        loadWords();
-
-        // Reset o input para permitir reimportar o mesmo arquivo
-        fileInput.value = "";
-      };
-
-      reader.readAsText(file);
-    });
-
-    // Carrega as palavras ao iniciar
-    loadWords();
+  importBtn.addEventListener("click", () => {
+    fileInput.value = "";
+    fileInput.click();
   });
+
+  fileInput.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target.result;
+      const newWords = content.split("\n").map(w => w.trim()).filter(w => w);
+
+      const existingWords = JSON.parse(localStorage.getItem("words")) || [];
+      const allWords = [...new Set([...existingWords, ...newWords])];
+
+      localStorage.setItem("words", JSON.stringify(allWords));
+      loadWords();
+
+      // Reset o input para permitir reimportar o mesmo arquivo
+      fileInput.value = "";
+    };
+
+    reader.readAsText(file);
+  });
+
+  // Carrega as palavras ao iniciar
+  loadWords();
+});
 
 
 // Adiciona evento ao pressionar Enter
@@ -86,13 +86,13 @@ function listenTo(text) {
 
 async function fetchDefinitionAndShow(word, isTranslation) {
   if (!word || typeof word !== "string" || word.trim() === "") {
-    showModal("Erro", `Palavra inválida ou vazia.`, "auto","flex","none","flex");
+    showModal("Erro", `Palavra inválida ou vazia.`, "auto", "flex", "none", "flex");
     console.warn("Palavra inválida ou vazia. Ignorando fetchDefinitionAndShow.");
     return;
   }
 
   if (isTranslation) {
-    showModal("Aviso", "Não é possível buscar significado de palavras em português nesta versão.", "auto","flex","none","flex");
+    showModal("Aviso", "Não é possível buscar significado de palavras em português nesta versão.", "auto", "flex", "none", "flex");
     return;
   }
 
@@ -101,7 +101,7 @@ async function fetchDefinitionAndShow(word, isTranslation) {
 
     if (!response.ok) {
       console.error(`Erro na requisição para ${word}: ${response.status}`);
-      showModal("Erro", `Erro ao buscar definição para "${word}".`, "auto","flex","none","flex");
+      showModal("Erro", `Erro ao buscar definição para "${word}".`, "auto", "flex", "none", "flex");
       return;
     }
 
@@ -115,7 +115,7 @@ async function fetchDefinitionAndShow(word, isTranslation) {
           const defs = meaning.definitions.map(def => def.definition).join("<br>");
           return `<strong>${partOfSpeech}</strong>:<br>${defs}`;
         }).join("<br><br>");
-        
+
         return `<div style="margin-bottom: 16px;">
                   <div><strong>Palavra:</strong> ${word} ${phonetic ? `(${phonetic})` : ""}</div>
                   ${meaningsHtml}
@@ -123,29 +123,29 @@ async function fetchDefinitionAndShow(word, isTranslation) {
       }).join("<hr>"); // separa cada entrada com uma linha
 
       //showModal(`Definição de "${word}"`, definitions, "900px","none","none","none");
-const listenButton = `
-  <button onclick='listenTo(${JSON.stringify(word)})' 
-          title="Ouvir palavra"
-          style="background: none; border: none; cursor: pointer; margin-left: 8px;">
-    <i class="fas fa-volume-up" style="color: #007bff;"></i>
-  </button>
-`;
+      const listenButton = `
+        <button onclick='listenTo(${JSON.stringify(word)})' 
+                title="Ouvir palavra"
+                style="background: none; border: none; cursor: pointer; margin-left: 8px;">
+          <i class="fas fa-volume-up" style="color: #007bff;"></i>
+        </button>
+      `;
 
-showModal(
-  `Definição de "${word}" ${listenButton}`,
-  definitions,
-  "900px",
-  "none",
-  "none",
-  "none"
-);
+      showModal(
+        `Definição de "${word}" ${listenButton}`,
+        definitions,
+        "900px",
+        "none",
+        "none",
+        "none"
+      );
 
     } else {
-      showModal(`Definição de "${word}"`, "Definição não encontrada.", "auto","flex","none","flex");
+      showModal(`Definição de "${word}"`, "Definição não encontrada.", "auto", "flex", "none", "flex");
     }
   } catch (error) {
     console.error("Erro ao buscar definição:", error);
-    showModal("Erro", "Erro ao buscar definição.", "auto","flex","none","flex");
+    showModal("Erro", "Erro ao buscar definição.", "auto", "flex", "none", "flex");
   }
 }
 
@@ -167,26 +167,26 @@ function hideModal() {
 }
 
 function createWordSpans(word, wordText, isTranslation) {
-    wordText.innerHTML = ""; 
+  wordText.innerHTML = "";
 
-    const wordsInPhrase = word.trim().split(" ");
-    wordsInPhrase.forEach((w) => {
-      const span = document.createElement("span");
-      span.textContent = w + " ";
-      span.style.cursor = "pointer";
+  const wordsInPhrase = word.trim().split(" ");
+  wordsInPhrase.forEach((w) => {
+    const span = document.createElement("span");
+    span.textContent = w + " ";
+    span.style.cursor = "pointer";
 
-      let timeout;
-      span.addEventListener("mousedown", () => {
-        timeout = setTimeout(() => {
-          fetchDefinitionAndShow(w, isTranslation);
-        }, 600);
-      });
-
-      span.addEventListener("mouseup", () => clearTimeout(timeout));
-      span.addEventListener("mouseleave", () => clearTimeout(timeout));
-
-      wordText.appendChild(span);
+    let timeout;
+    span.addEventListener("mousedown", () => {
+      timeout = setTimeout(() => {
+        fetchDefinitionAndShow(w, isTranslation);
+      }, 600);
     });
+
+    span.addEventListener("mouseup", () => clearTimeout(timeout));
+    span.addEventListener("mouseleave", () => clearTimeout(timeout));
+
+    wordText.appendChild(span);
+  });
 }
 
 async function translateWord(originalWord) {
@@ -206,7 +206,7 @@ async function translateWord(originalWord) {
 
     const rawText = await response.text(); // <- captura o texto bruto
     console.log("Resposta da API:", rawText); // <- veja o que veio realmente
-    
+
     const data = JSON.parse(rawText); // tenta transformar em JSON
     return data.translatedText;
   } catch (err) {
@@ -234,7 +234,7 @@ function loadWords() {
     wordText.style.cursor = "pointer";
 
     createWordSpans(word, wordText, false);
-    
+
     let showingOriginal = true;
 
     wordText.addEventListener("click", async () => {
@@ -271,10 +271,11 @@ function loadWords() {
     editOption.title = "Edit"; // tooltip ao passar o mouse
     editOption.style.color = "#ffc107";
     editOption.onclick = function () {
-      const newWord = prompt("Edit the word:", word);
+      /*const newWord = prompt("Edit the word:", word);
       if (newWord) {
         editWord(index, newWord);
-      }
+      }*/
+      showEditWordModal(word, index);
       contextMenu.style.display = "none"; // Esconde o menu após a ação
     };
 
@@ -284,12 +285,18 @@ function loadWords() {
     deleteOption.title = "Delete"; // tooltip ao passar o mouse
     deleteOption.onclick = function () {
       const words = JSON.parse(localStorage.getItem("words")) || [];
-  
-      // Pega a palavra que será deletada
       const deletedWord = words[index];
-      wordIndexToDelete = index;
-      showModal("Aviso", "Tem certeza que deseja deletar a palavra "+deletedWord+"?", "auto","flex","flex","none");
-      contextMenu.style.display = "none"; // Esconde o menu após a ação
+
+      showModal("Aviso", "Tem certeza que deseja deletar a palavra <b>" + deletedWord + "</b>?", "auto", "flex", "flex", "none");
+
+      const confirmYesBtn = document.getElementById("confirmYesBtn");
+      confirmYesBtn.onclick = function () {
+        deleteWord(index); // Deleta uma palavra
+        loadWords();
+        hideModal();
+      };
+
+      contextMenu.style.display = "none";
     };
 
     const copyOption = document.createElement("button");
@@ -299,7 +306,7 @@ function loadWords() {
     copyOption.onclick = function () {
       // Copia o texto para a área de transferência
       navigator.clipboard.writeText(word).then(() => {
-        showModal("Aviso", "Word "+ word+" copied to clipboard!", "auto","flex","none","flex");
+        showModal("Aviso", "Word <b>" + word + "</b> copied to clipboard!", "auto", "flex", "none", "flex");
         //alert("Word copied to clipboard!");
       }).catch(err => {
         console.error("Failed to copy text: ", err);
@@ -352,7 +359,7 @@ function addWord() {
   const newWord = input.value.trim();
 
   if (newWord === "") {
-    showModal("Aviso", "Por favor, insira uma palavra!", "auto","flex","none","flex");
+    showModal("Aviso", "Por favor, insira uma palavra!", "auto", "flex", "none", "flex");
     return;
   }
 
@@ -388,16 +395,32 @@ function exportWords() {
 }
 
 function clearAllWords() {
-  showModal("Aviso", `Tem certeza que deseja limpar todas as palavras?`, "auto","flex","flex","none");
+  showModal("Aviso", `Tem certeza que deseja limpar todas as palavras?`, "auto", "flex", "flex", "none");
+
+  const confirmYesBtn = document.getElementById("confirmYesBtn");
+  confirmYesBtn.onclick = function () {
+    localStorage.removeItem("words"); // Deleta tudo
+    loadWords();
+    hideModal();
+  };
 }
 
-document.getElementById("confirmYesBtn").addEventListener("click", () => {
-  if (wordIndexToDelete !== null) {
-    deleteWord(wordIndexToDelete); // Deleta só uma
-    wordIndexToDelete = null; // Limpa para futuros usos
-  } else {
-    localStorage.removeItem("words"); // Deleta tudo
-  }
-  loadWords();
-  hideModal();
-});
+function showEditWordModal(word, index) {
+  const inputId = "editWordInput";
+  const content = `
+    <input id="${inputId}" type="text" value="${word}" style="width: 95%; font-size: 16px;">
+  `;
+
+  showModal("Editar Palavra", content, "500px", "flex", "flex", "none");
+
+  // Substitui qualquer ação anterior do botão "Sim"
+  const confirmYesBtn = document.getElementById("confirmYesBtn");
+  confirmYesBtn.onclick = function () {
+    const newWord = document.getElementById(inputId).value.trim();
+    if (newWord) {
+      editWord(index, newWord);
+      loadWords(); // Atualiza a lista após editar
+    }
+    hideModal();
+  };
+}
