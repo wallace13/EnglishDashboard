@@ -108,8 +108,8 @@ button:hover {
     gap: 10px;
     position: relative;
     overflow-y: auto;
-    width: 90%;
-    height: 90%;
+    width: 99%;
+    height: 99%;
 }
 
 .word {

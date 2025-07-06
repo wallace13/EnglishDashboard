@@ -185,6 +185,15 @@ function createWordSpans(word, wordText, isTranslation) {
     span.addEventListener("mouseup", () => clearTimeout(timeout));
     span.addEventListener("mouseleave", () => clearTimeout(timeout));
 
+    // Suporte a toque em celular
+    span.addEventListener("touchstart", () => {
+      timeout = setTimeout(() => {
+        fetchDefinitionAndShow(w, isTranslation);
+      }, 600);
+    });
+    span.addEventListener("touchend", () => clearTimeout(timeout));
+    span.addEventListener("touchmove", () => clearTimeout(timeout)); // se o usuário
+
     wordText.appendChild(span);
   });
 }
